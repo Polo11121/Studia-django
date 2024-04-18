@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Players</title>
+    <style>
+        .navbar .form-inline {
+            display: inline-block;
+        }
+
+        .btn-link.nav-link {
+            padding: 0.5rem 1rem;
+            color: #007bff;
+            text-decoration: none;
+            background: none;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'home' %}">Games</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'players' %}">Players</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                {% if user.is_authenticated %}
+                {% if not user.is_superuser %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'player_details' user.player.id %}">My Profile</a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <form action="{% url 'logout' %}" method="post" class="form-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link nav-link">Logout</button>
+                    </form>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'signIn' %}">Sign In</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'signUp' %}">Sign Up</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+</header>
+<main class="container mt-4">
+    <h1>Players List</h1>
+    <div>
+        <form action="{% url 'players' %}" method="get" class="form-inline">
+            <input type="text" name="name" placeholder="Search by player name..." class="form-control mb-2 mr-2"
+                   style="width: 200px;">
+            <button type="submit" class="btn btn-primary mb-2">Search</button>
+        </form>
+    </div>
+    <div>
+        Sort by:
+        <a href="?sort=username">Username</a> |
+        <a href="?sort=reviews">Review Count</a>
+    </div>
+    <ul class="list-group mt-2">
+        {% for player in players %}
+        <li class="list-group-item">
+            <a href="{% url 'player_details' player.id %}">{{ player.user.username }}</a>
+            - Reviews: {{ player.review_count|default:"0" }}
+        </li>
+        {% empty %}
+        <li class="list-group-item">No players found.</li>
+        {% endfor %}
+    </ul>
+</main>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

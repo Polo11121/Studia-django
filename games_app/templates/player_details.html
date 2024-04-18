@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Player Details</title>
+    <style>
+        .navbar .form-inline {
+            display: inline-block;
+        }
+
+        .btn-link.nav-link {
+            padding: 0.5rem 1rem;
+            color: #007bff;
+            text-decoration: none;
+            background: none;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'home' %}">Games</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'players' %}">Players</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                {% if user.is_authenticated %}
+                {% if not user.is_superuser %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'player_details' user.player.id %}">My Profile</a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <form action="{% url 'logout' %}" method="post" class="form-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link nav-link">Logout</button>
+                    </form>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'signIn' %}">Sign In</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'signUp' %}">Sign Up</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+</header>
+<main class="container mt-4">
+    <h1>Player: {{ player.user.username }}</h1>
+    <p><strong>Bio:</strong> {{ player_profile.bio|default:"Currently, there is no bio available." }}</p>
+    {% if user == player_profile.player.user %}
+    <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#editBioModal">
+        Edit Bio
+    </button>
+    <div class="modal fade" id="editBioModal" tabindex="-1" role="dialog" aria-labelledby="editBioModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <form action="{% url 'edit_bio' player_profile.player.user.id %}" method="post">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editBioModalLabel">Edit Bio</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="bio">Bio</label>
+                            <textarea class="form-control" id="bio" name="bio">{{ player_profile.bio }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <h2>Reviews by {{ player.user.username }}</h2>
+    <ul class="list-group">
+        {% for review in reviews %}
+        <li class="list-group-item">
+            {% if review.game.image %}
+            <img src="{{ review.game.image.url }}" alt="{{ review.game.title }}"
+                 style="width:100px; height:auto; float:left; margin-right:10px;">
+            {% endif %}
+            <div>
+                <strong>Game:</strong> {{ review.game.title }}<br>
+                <strong>Score:</strong> {{ review.score }}<br>
+                <strong>Comment:</strong> {{ review.comment }}
+            </div>
+            {% if user == review.player.user %}
+            <div style="margin-top: 10px;">
+                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                        data-target="#editReviewModal{{ review.id }}">
+                    Edit
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" data-toggle="modal"
+                        data-target="#deleteReviewModal{{ review.id }}">
+                    Delete
+                </button>
+            </div>
+            {% endif %}
+        </li>
+        {% empty %}
+        <li class="list-group-item">No reviews yet.</li>
+        {% endfor %}
+    </ul>
+    {% for review in reviews %}
+    <div class="modal fade" id="editReviewModal{{ review.id }}" tabindex="-1" role="dialog"
+         aria-labelledby="editReviewModalLabel{{ review.id }}" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editReviewModalLabel{{ review.id }}">Edit Your Review</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form action="{% url 'edit_review' review.id %}?from_profile=true" method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="score">Score</label>
+                            <input type="number" class="form-control" id="score" name="score" value="{{ review.score }}"
+                                   required min="1" max="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="comment">Comment</label>
+                            <textarea class="form-control" id="comment" name="comment">{{ review.comment }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="deleteReviewModal{{ review.id }}" tabindex="-1" role="dialog"
+         aria-labelledby="deleteReviewModalLabel{{ review.id }}" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteReviewModalLabel{{ review.id }}">Confirm Delete</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this review?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <form action="{% url 'delete_review' review.id %}?from_profile=true" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</main>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

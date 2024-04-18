@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Games</title>
+    <style>
+        .navbar .form-inline {
+            display: inline-block;
+        }
+
+        .btn-link.nav-link {
+            padding: 0.5rem 1rem;
+            color: #007bff;
+            text-decoration: none;
+            background: none;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'home' %}">Games</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'players' %}">Players</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                {% if user.is_authenticated %}
+                {% if not user.is_superuser %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'player_details' user.player.id %}">My Profile</a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <form action="{% url 'logout' %}" method="post" class="form-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link nav-link">Logout</button>
+                    </form>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'signIn' %}">Sign In</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'signUp' %}">Sign Up</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+</header>
+<main class="container mt-4">
+    <h1>Game List</h1>
+    <div>
+        <form action="{% url 'home' %}" method="get" class="form-inline">
+            <div class="form-group mb-2 mr-2">
+                <input type="text" name="genre" placeholder="Search by genre..." class="form-control"
+                       style="width: 300px;"> <!-- Adjusted width -->
+            </div>
+            <button type="submit" class="btn btn-primary mb-2">Search</button>
+        </form>
+    </div>
+    <div class="mb-2">
+        Sort by:
+        <a href="?sort=title">Title</a> |
+        <a href="?sort=average_score">Average Score</a>
+    </div>
+    {% if user.is_superuser %}
+    <button type="button" class="btn btn-primary mb-3 mt-3" data-toggle="modal" data-target="#addGameModal">Add Game
+    </button>
+    {% endif %}
+    {% if games %}
+    <div class="row">
+        {% for game in games %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                {% if game.image %}
+                <img src="{{ game.image.url }}" class="card-img-top" alt="{{ game.title }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ game.title }}</h5>
+                    <p class="card-text">Genre: {{ game.genre }}</p>
+                    <p class="card-text">Average Score: {{ game.average_score|default:"No ratings" }}</p>
+                    <a href="{% url 'game_details' game.id %}" class="btn btn-primary">View Details</a>
+                    {% if user.is_superuser %}
+                    <button type="button" class="btn btn-primary" data-toggle="modal"
+                            data-target="#editGameModal{{ game.id }}">Edit
+                    </button>
+                    <button type="button" class="btn btn-danger" data-toggle="modal"
+                            data-target="#deleteGameModal{{ game.id }}">Delete
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+        No games found.
+    </div>
+    {% endif %}
+</main>
+{% if user.is_superuser %}
+<div class="modal fade" id="addGameModal" tabindex="-1" role="dialog" aria-labelledby="addGameModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addGameModalLabel">New Game</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{% url 'add_game' %}" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="title">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="genre">Genre</label>
+                        <input type="text" class="form-control" id="genre" name="genre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="image">Game Image</label>
+                        <input type="file" class="form-control-file" id="image" name="image">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% for game in games %}
+<div class="modal fade" id="editGameModal{{ game.id }}" tabindex="-1" role="dialog"
+     aria-labelledby="editGameModalLabel{{ game.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editGameModalLabel{{ game.id }}">Edit Game</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{% url 'edit_game' game.id %}" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="title{{ game.id }}">Title</label>
+                        <input type="text" class="form-control" id="title{{ game.id }}" name="title"
+                               value="{{ game.title }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="genre{{ game.id }}">Genre</label>
+                        <input type="text" class="form-control" id="genre{{ game.id }}" name="genre"
+                               value="{{ game.genre }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="image{{ game.id }}">Game Image</label>
+                        <input type="file" class="form-control-file" id="image{{ game.id }}" name="image">
+                        {% if game.image %}
+                        <img src="{{ game.image.url }}" alt="{{ game.title }}" height="100">
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% for game in games %}
+<div class="modal fade" id="deleteGameModal{{ game.id }}" tabindex="-1" role="dialog"
+     aria-labelledby="deleteGameModalLabel{{ game.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteGameModalLabel{{ game.id }}">Delete Game</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this game "{{ game.title }}"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <form action="{% url 'delete_game' game.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+</main>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
